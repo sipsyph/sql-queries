@@ -1,3 +1,5 @@
+----------------------------------------------------------------------------------------------
+--Random string for generating random text in posts and comments
 Create or replace function random_name(length integer) returns text as
 $$
 declare
@@ -81,7 +83,10 @@ begin
 		insert into commentt(usr_id,post_id,parent_commentt_id,body,created_date,ups,downs,del) 
 		select p.usr_id,
 		p.id,
-		random_commentt_in_post.id,
+		case when (cast( ((floor(random()*(3-1+1))+1)+random()) as integer )) = 1 
+			then null 
+			else random_commentt_in_post.id
+		end, --1 out of 4 generated comments have a null parent id, these are 'direct' comments to a post
 		random_name(9),
 		cast(current_date - (random() * (interval '360 days')) + '1 days' as date),
 		cast( ((floor(random()*(50-1+1))+1)+random()) as integer ),
@@ -95,35 +100,35 @@ begin
 		left join lateral ( 
 			select c.id from commentt c where c.post_id = p.id 
 			offset floor(random() * commentts_count_per_post.commentts_count)
-			fetch first 1 rows only
+			fetch first 1 rows only --select a random comment from the existing comments under the post
 		) as random_commentt_in_post on true;
 	end loop;
 end;
 $$;
 
 select c.post_id, c.id, c.parent_commentt_id 
-from commentt c where c.post_id  = 652;
---sample result: generated comments and which comment they are a child of 
+from commentt c where c.post_id  = 1;
+--sample result: generated comments under post with id 1 and which comment they are a child of 
 --|post_id|id    |parent_commentt_id|
 --|-------|------|------------------|
---|652    |1,652 |652               |
---|652    |2,652 |652               |
---|652    |3,652 |652               |
---|652    |5,652 |652               |
---|652    |10,652|652               |
---|652    |6,652 |1,652             |
---|652    |11,652|1,652             |
---|652    |9,652 |2,652             |
---|652    |19,652|2,652             |
---|652    |4,652 |3,652             |
---|652    |7,652 |5,652             |
---|652    |8,652 |6,652             |
---|652    |14,652|7,652             |
---|652    |12,652|9,652             |
---|652    |13,652|9,652             |
---|652    |15,652|13,652            |
---|652    |18,652|14,652            |
---|652    |16,652|15,652            |
---|652    |17,652|16,652            |
---|652    |652   |                  |
+--|1      |1     |                  |
+--|1      |1,001 |1                 |
+--|1      |2,001 |1                 |
+--|1      |3,001 |2,001             |
+--|1      |4,001 |1                 |
+--|1      |5,001 |1                 |
+--|1      |6,001 |1,001             |
+--|1      |7,001 |1                 |
+--|1      |8,001 |                  |
+--|1      |9,001 |3,001             |
+--|1      |10,001|2,001             |
+--|1      |11,001|4,001             |
+--|1      |12,001|                  |
+--|1      |13,001|1                 |
+--|1      |14,001|8,001             |
+--|1      |15,001|14,001            |
+--|1      |16,001|5,001             |
+--|1      |17,001|14,001            |
+--|1      |18,001|15,001            |
+--|1      |19,001|1,001             |
 
